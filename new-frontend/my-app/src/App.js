@@ -1,41 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { Button, Container, Typography, Stack, CircularProgress } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
 // Define marker icons for different node types
 const busIcon = new L.Icon({
-  iconUrl: '/assets/bus.png', 
+  iconUrl: '/berlin-mapping-application/assets/bus.png', 
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [0, -41],
 });
 
 const tramIcon = new L.Icon({
-  iconUrl: '/assets/tram.png', 
+  iconUrl: './assets/tram.png', 
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [0, -41],
 });
 
 const ubahnIcon = new L.Icon({
-  iconUrl: '/assets/u-bahn.png', 
+  iconUrl: './assets/u-bahn.png', 
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [0, -41],
 });
 
 const sbahnIcon = new L.Icon({
-  iconUrl: '/assets/s-bahn.png', 
+  iconUrl: './assets/s-bahn.png', 
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [0, -41],
 });
 
 const defaultIcon = new L.Icon({
-  iconUrl: '/assets/location-pin.png', 
+  iconUrl: './assets/location-pin.png', 
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [0, -41],
