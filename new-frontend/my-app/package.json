@@ -19,7 +19,7 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
-  "homepage": "https://github.com/noahjb27/berlin-mapping-application",
+  "homepage": "https://noahjb27.github.io/berlin-mapping-application/",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
