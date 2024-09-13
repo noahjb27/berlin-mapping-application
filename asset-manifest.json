@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/noahjb27/berlin-mapping-application/static/css/main.cf68e7aa.css",
+    "main.js": "/noahjb27/berlin-mapping-application/static/js/main.8cc50035.js",
+    "static/js/453.ed3810f9.chunk.js": "/noahjb27/berlin-mapping-application/static/js/453.ed3810f9.chunk.js",
+    "index.html": "/noahjb27/berlin-mapping-application/index.html",
+    "main.cf68e7aa.css.map": "/noahjb27/berlin-mapping-application/static/css/main.cf68e7aa.css.map",
+    "main.8cc50035.js.map": "/noahjb27/berlin-mapping-application/static/js/main.8cc50035.js.map",
+    "453.ed3810f9.chunk.js.map": "/noahjb27/berlin-mapping-application/static/js/453.ed3810f9.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.cf68e7aa.css",
+    "static/js/main.8cc50035.js"
+  ]
+}
