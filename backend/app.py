@@ -15,7 +15,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Get the database URL from the environment
-DATABASE_URL = "postgresql://postgres:RdMSFdyIgbiwfwIPwSupAvPkcsKZzRbF@junction.proxy.rlwy.net:29683/railway"
+DATABASE_URL = "os.getenv('DATABASE_URL')"
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the environment variables")
 
