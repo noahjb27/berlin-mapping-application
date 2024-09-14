@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from models import Node, Edge
+from backend.models import Node, Edge
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
