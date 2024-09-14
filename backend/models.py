@@ -32,7 +32,6 @@ class Node(Base):
 # Example for Edge model
 class Edge(Base):
     __tablename__ = 'edges'
-    id = Column(String, primary_key=True)
     source = Column(String)
     target = Column(String)
     label = Column(String)
@@ -45,7 +44,6 @@ class Edge(Base):
 
     def to_dict(self):
         return {
-            'id': self.id,
             'source': self.source,
             'target': self.target,
             'label': self.label,
