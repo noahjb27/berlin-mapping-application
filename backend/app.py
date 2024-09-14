@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from backend.models import Node, Edge
+from models import Node, Edge
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
@@ -23,46 +23,24 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 
-@app.route('/nodes', methods=['GET'])
-def get_nodes():
+@app.route('/graph', methods=['GET'])
+def get_graph():
     try:
         year = request.args.get('year')
-        with Session() as session:
-            query = session.query(Node)
-            if year:
-                query = query.filter(Node.year == year)
-            nodes = query.all()
-            node_list = [node.to_dict() for node in nodes]
-            return jsonify(node_list)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/edges', methods=['GET'])
-def get_edges():
-    try:
-        year = request.args.get('year')
-
         if year:
-            try:
-                year = int(year)  # Convert year to integer
-            except ValueError:
-                return jsonify({'error': 'Invalid year format'}), 400
-
+            year = int(year)
+        
         with Session() as session:
-            query = session.query(Edge)
+            # Fetch nodes
+            nodes = session.query(Node).filter(Node.year == year).all()
+            node_list = [node.to_dict() for node in nodes]
 
-            if year:
-                query = query.filter(Edge.year == year)
-
-            edges = query.all()
-
+            # Fetch edges
+            edges = session.query(Edge).filter(Edge.year == year).all()
             edge_list = []
             for edge in edges:
-                # Fetch source and target nodes for each edge
                 source_node = session.query(Node).filter(Node.id == edge.source).one_or_none()
                 target_node = session.query(Node).filter(Node.id == edge.target).one_or_none()
-
                 if source_node and target_node:
                     edge_list.append({
                         "id": edge.id,
@@ -81,13 +59,11 @@ def get_edges():
                         "distance": edge.distance,
                         "year": edge.year
                     })
-                else:
-                    print(f"Skipping edge {edge.id} due to missing source or target node.")
-
-            return jsonify(edge_list)
-
+        
+        return jsonify({"nodes": node_list, "edges": edge_list})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 if __name__ == '__main__':
