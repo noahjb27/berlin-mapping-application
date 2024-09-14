@@ -70,7 +70,7 @@ const getIconByType = (type) => {
 
 function App() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] }); // Initialize with empty arrays
-  const [year, setYear] = useState(1980); // Year state
+  const [year, setYear] = useState(1946); // Year state
   const [loading, setLoading] = useState(false); // Loading state
 
   // Fetch data based on the selected year
@@ -154,7 +154,6 @@ function App() {
           sx={{
             padding: '16px', 
             borderRadius: '8px',
-            boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)', 
             maxWidth: '400px',
             margin: '0 auto', // Center the box
           }}
@@ -167,7 +166,6 @@ function App() {
               backgroundColor: '#3f51b5', // Background color for the "Selected Year" label
               color: 'white',
               padding: '8px 12px',
-              borderRadius: '4px 0 0 4px', // Rounded only on the left side
             }}
           >
             Selected Year:
