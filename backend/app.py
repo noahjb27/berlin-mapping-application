@@ -4,11 +4,15 @@ from sqlalchemy import create_engine
 from backend.models import Node, Edge
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+
+# Enable CORS for all routes and origins
+CORS(app)
 
 # Get the database URL from the environment
 DATABASE_URL = os.getenv('DATABASE_URL')
