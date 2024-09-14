@@ -1,46 +1,55 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from models import Node, Edge
+from dotenv import load_dotenv
+import os
 from flask_cors import CORS
-import networkx as nx
-import json
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # This will enable CORS for all routes and origins
 
-def load_graph(filename):
-    return nx.read_graphml(filename)
+# Enable CORS for all routes and origins
+CORS(app)
 
-def create_subgraph(G, target_year):
-    subgraph_for_year = nx.Graph()
-    for node, data in G.nodes(data=True):
-        if str(target_year) in data.get('years', ''):
-            subgraph_for_year.add_node(node, **data)
+# Get the database URL from the environment
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set in the environment variables")
 
-    for edge in G.edges(data=True):
-        node1 = edge[0]
-        node2 = edge[1]
-        data = edge[2]
-        if data.get("year") == int(target_year):
-            if subgraph_for_year.has_node(node1) and subgraph_for_year.has_node(node2):
-                subgraph_for_year.add_edge(node1, node2, **data)
-    return subgraph_for_year
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
+session = Session()
 
-@app.route('/graph', methods=['GET'])
-def get_graph():
-    year = request.args.get('year')
-    if not year:
-        return jsonify({"error": "No year specified"}), 400
-
+@app.route('/nodes', methods=['GET'])
+def get_nodes():
     try:
-        year = int(year)
-    except ValueError:
-        return jsonify({"error": "Invalid year format"}), 400
+        year = request.args.get('year')
+        with Session() as session:
+            query = session.query(Node)
+            if year:
+                query = query.filter(Node.year == year)
+            nodes = query.all()
+            node_list = [node.to_dict() for node in nodes]
+            return jsonify(node_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    G = load_graph('./backend/graph_data/base-graph.graphml')
-    subgraph = create_subgraph(G, year)
-
-    # Convert graph to node-link data format for JSON serialization
-    data = nx.node_link_data(subgraph)
-    return jsonify(data)
+@app.route('/edges', methods=['GET'])
+def get_edges():
+    try:
+        year = request.args.get('year')
+        with Session() as session:
+            query = session.query(Edge)
+            if year:
+                query = query.filter(Edge.year == year)
+            edges = query.all()
+            edge_list = [edge.to_dict() for edge in edges]
+            return jsonify(edge_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
