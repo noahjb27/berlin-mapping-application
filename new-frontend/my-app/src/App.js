@@ -43,11 +43,14 @@ const defaultIcon = new L.Icon({
 });
 
 // Helper function to parse coordinates from string
-const parseCoordinates = (coordString) => {
-  const coords = coordString.replace(/[()]/g, '').split(',');
-  const [lng, lat] = coords.map(Number);
-  return [lat, lng]; // Return in Leaflet's [lat, lng] order
+const parseCoordinates = (node) => {
+  // Ensure node has valid coordinates
+  if (node && node.x !== undefined && node.y !== undefined) {
+    return [node.y, node.x]; // Leaflet expects [latitude, longitude]
+  }
+  return null; // Return null if node is invalid
 };
+
 
 // Function to determine the correct icon based on node type
 const getIconByType = (type) => {
@@ -73,32 +76,32 @@ function App() {
   // Fetch data based on the selected year
   useEffect(() => {
     if (year) {
-      setLoading(true); // Start loading
       axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}`)
         .then(response => {
+          const nodes = response.data;
+          
+          // Create a mapping of node IDs to their coordinates
+          const nodeMap = {};
+          nodes.forEach(node => {
+            nodeMap[node.id] = [node.y, node.x]; // Store coordinates as [lat, lon]
+          });
+  
           setGraphData(prevData => ({
             ...prevData,
-            nodes: response.data
+            nodes: nodes, // Store the nodes
+            nodeMap: nodeMap // Store the ID to coordinates map
           }));
-          setLoading(false); // Stop loading once data is fetched
-        })
-        .catch(error => {
-          console.error("There was an error fetching the nodes data!", error);
-          setLoading(false); // Stop loading on error
         });
-
+  
       axios.get(`https://berlin-mapping-application.onrender.com/edges?year=${year}`)
         .then(response => {
           setGraphData(prevData => ({
             ...prevData,
-            links: response.data
+            links: response.data // Store the edges
           }));
-        })
-        .catch(error => {
-          console.error("There was an error fetching the edges data!", error);
         });
     }
-  }, [year]); // This effect runs whenever the year changes
+  }, [year]);   // This effect runs whenever the year changes
 
   const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
 
@@ -218,18 +221,28 @@ function App() {
 
           {/* Render Edges (Polylines) */}
           {graphData.links && graphData.links.map((edge, index) => {
-            const sourceCoords = parseCoordinates(edge.source);
-            const targetCoords = parseCoordinates(edge.target);
+  // Look up the coordinates for the source and target nodes using the nodeMap
+  const sourceCoords = graphData.nodeMap[edge.source];
+  const targetCoords = graphData.nodeMap[edge.target];
 
-            return (
-              <Polyline 
-                key={index} 
-                positions={[sourceCoords, targetCoords]} 
-                color="blue" 
-                weight={3} 
-              />
-            );
-          })}
+  // Validate the coordinates before rendering the Polyline
+  if (!sourceCoords || !targetCoords) {
+    console.warn('Skipping edge due to missing node coordinates:', edge);
+    return null;
+  }
+
+  return (
+    <Polyline 
+      key={index} 
+      positions={[sourceCoords, targetCoords]} 
+      color="blue" 
+      weight={3} 
+    />
+  );
+})}
+
+
+
         </MapContainer>
       </Box>
     </Container>
