@@ -66,25 +66,43 @@ const getIconByType = (type) => {
 };
 
 function App() {
-  const [graphData, setGraphData] = useState(null); // Graph data state
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] }); // Initialize with empty arrays
   const [year, setYear] = useState(1980); // Year state
+  const [loading, setLoading] = useState(false); // Loading state
 
   // Fetch data based on the selected year
   useEffect(() => {
     if (year) {
-      axios.get(`https://berlin-mapping-application.onrender.com/graph?year=${year}`)
+      setLoading(true); // Start loading
+      axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}`)
         .then(response => {
-          setGraphData(response.data);
+          setGraphData(prevData => ({
+            ...prevData,
+            nodes: response.data
+          }));
+          setLoading(false); // Stop loading once data is fetched
         })
         .catch(error => {
-          console.error("There was an error fetching the graph data!", error);
+          console.error("There was an error fetching the nodes data!", error);
+          setLoading(false); // Stop loading on error
+        });
+
+      axios.get(`https://berlin-mapping-application.onrender.com/edges?year=${year}`)
+        .then(response => {
+          setGraphData(prevData => ({
+            ...prevData,
+            links: response.data
+          }));
+        })
+        .catch(error => {
+          console.error("There was an error fetching the edges data!", error);
         });
     }
   }, [year]); // This effect runs whenever the year changes
 
   const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
 
-  if (graphData === null) {
+  if (loading) {
     return (
       <Container>
         <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
@@ -124,23 +142,66 @@ function App() {
         ))}
       </Stack>
 
-      {year && <Typography variant="h6" align="center">Selected Year: {year}</Typography>}
+      {year && (
+        <Box 
+          display="flex" 
+          justifyContent="center" 
+          alignItems="center" 
+          mb={3} 
+          sx={{
+            padding: '16px', 
+            borderRadius: '8px',
+            boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)', 
+            maxWidth: '400px',
+            margin: '0 auto', // Center the box
+          }}
+        >
+          <Typography 
+            variant="h6" 
+            component="span" 
+            sx={{ 
+              fontWeight: 'bold', 
+              backgroundColor: '#3f51b5', // Background color for the "Selected Year" label
+              color: 'white',
+              padding: '8px 12px',
+              borderRadius: '4px 0 0 4px', // Rounded only on the left side
+            }}
+          >
+            Selected Year:
+          </Typography>
+
+          <Typography 
+            variant="h6" 
+            component="span" 
+            sx={{ 
+              fontWeight: 'bold', 
+              backgroundColor: '#ff9800', // Different background for the year itself
+              color: 'white',
+              padding: '8px 12px',
+              borderRadius: '0 4px 4px 0', // Rounded only on the right side
+              marginLeft: '4px' // Small spacing between the two sections
+            }}
+          >
+            {year}
+          </Typography>
+        </Box>
+      )}
 
       <Box style={{ 
-          height: 'calc(100vh - 80px)', // Adjust height to fit in the viewport minus header/footer height
-          width: '100%', 
-          marginBottom: '2rem' // Add margin-bottom for spacing under the map
-        }}>
+        height: 'calc(100vh - 80px)', // Adjust height to fit in the viewport minus header/footer height
+        width: '100%', 
+        marginBottom: '2rem' // Add margin-bottom for spacing under the map
+      }}>
         <MapContainer center={[52.52, 13.405]} zoom={12} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
           {/* Render Nodes with Dynamic Icons and Custom Popup */}
-          {graphData.nodes.map((node, index) => {
-            const nodeType = node.type; // Get the node type from the data
+          {graphData.nodes && graphData.nodes.map((node, index) => {
+            const nodeType = node.station_type; // Adjust based on the actual data key
             const icon = getIconByType(nodeType); // Determine the correct icon
-            const popupContent = node.node_labels; // Get the value of attvalue "d3"
+            const popupContent = node.node_label; // Adjust based on the actual data key
             
             return (
               <Marker 
@@ -156,7 +217,7 @@ function App() {
           })}
 
           {/* Render Edges (Polylines) */}
-          {graphData.links.map((edge, index) => {
+          {graphData.links && graphData.links.map((edge, index) => {
             const sourceCoords = parseCoordinates(edge.source);
             const targetCoords = parseCoordinates(edge.target);
 
