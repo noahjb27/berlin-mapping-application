@@ -28,10 +28,13 @@ Session = scoped_session(session_factory)
 def get_nodes():
     try:
         year = request.args.get('year')
+        node_type = request.args.get('type')  # Get the type filter from the request
         with Session() as session:
             query = session.query(Node)
             if year:
                 query = query.filter(Node.year == year)
+            if node_type:
+                query = query.filter(Node.station_type == node_type)
             nodes = query.all()
             node_list = [node.to_dict() for node in nodes]
             return jsonify(node_list)
@@ -42,10 +45,13 @@ def get_nodes():
 def get_edges():
     try:
         year = request.args.get('year')
+        edge_type = request.args.get('type')  # Get the type filter from the request
         with Session() as session:
             query = session.query(Edge)
             if year:
                 query = query.filter(Edge.year == year)
+            if edge_type:
+                query = query.filter(Edge.edge_type == edge_type)
             edges = query.all()
             edge_list = [edge.to_dict() for edge in edges]
             return jsonify(edge_list)
