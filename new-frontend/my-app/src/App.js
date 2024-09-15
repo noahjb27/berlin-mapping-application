@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { Button, Container, Typography, Stack, CircularProgress, Box } from '@mui/material';
+import { Button, Container, Typography, Stack, CircularProgress, Box, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
@@ -44,13 +44,11 @@ const defaultIcon = new L.Icon({
 
 // Helper function to parse coordinates from string
 const parseCoordinates = (node) => {
-  // Ensure node has valid coordinates
   if (node && node.x !== undefined && node.y !== undefined) {
     return [node.y, node.x]; // Leaflet expects [latitude, longitude]
   }
-  return null; // Return null if node is invalid
+  return null;
 };
-
 
 // Function to determine the correct icon based on node type
 const getIconByType = (type) => {
@@ -70,40 +68,47 @@ const getIconByType = (type) => {
 
 function App() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] }); // Initialize with empty arrays
-  const [year, setYear] = useState(1946); // Year state
+  const [year, setYear] = useState('1946'); // Year state
+  const [type, setType] = useState(''); // Selected type
   const [loading, setLoading] = useState(false); // Loading state
 
-  // Fetch data based on the selected year
+  const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
+
+  // Available types for dropdown
+  const availableTypes = ['All', 'u-bahn', 's-bahn', 'bus', 'strassenbahn'];
+
+  // Fetch data based on the selected year and type
   useEffect(() => {
     if (year) {
-      axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}`)
+      setLoading(true); // Start loading
+      const typeQueryParam = type === 'All' ? '' : type;
+      axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}&type=${typeQueryParam}`)
         .then(response => {
-          const nodes = response.data;
-          
-          // Create a mapping of node IDs to their coordinates
-          const nodeMap = {};
-          nodes.forEach(node => {
-            nodeMap[node.id] = [node.y, node.x]; // Store coordinates as [lat, lon]
-          });
-  
+          console.log('Nodes returned:', response.data.length); // Log number of nodes returned
           setGraphData(prevData => ({
             ...prevData,
-            nodes: nodes, // Store the nodes
-            nodeMap: nodeMap // Store the ID to coordinates map
+            nodes: response.data
           }));
+          setLoading(false); // Stop loading once data is fetched
+        })
+        .catch(error => {
+          console.error("There was an error fetching the nodes data!", error);
+          setLoading(false); // Stop loading on error
         });
-  
-      axios.get(`https://berlin-mapping-application.onrender.com/edges?year=${year}`)
+
+      axios.get(`https://berlin-mapping-application.onrender.com/edges?year=${year}&type=${typeQueryParam}`)
         .then(response => {
+          console.log('Edges returned:', response.data.length); // Log number of edges returned
           setGraphData(prevData => ({
             ...prevData,
-            links: response.data // Store the edges
+            links: response.data
           }));
+        })
+        .catch(error => {
+          console.error("Error fetching the edges data!", error);
         });
     }
-  }, [year]);   // This effect runs whenever the year changes
-
-  const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
+  }, [year, type]);
 
   if (loading) {
     return (
@@ -114,6 +119,12 @@ function App() {
       </Container>
     );
   }
+
+  // Map nodes to a dictionary by ID for easy lookup
+  const nodeMap = {};
+  graphData.nodes.forEach(node => {
+    nodeMap[node.id] = node;
+  });
 
   return (
     <Container>
@@ -127,7 +138,7 @@ function App() {
             color: '#333' 
           }}
         >
-          Graph Visualization on Map
+          Berlin's Public Transport Visualised
         </Typography>
       </Box>
 
@@ -166,6 +177,7 @@ function App() {
               backgroundColor: '#3f51b5', // Background color for the "Selected Year" label
               color: 'white',
               padding: '8px 12px',
+              borderRadius: '4px 0 0 4px', // Rounded only on the left side
             }}
           >
             Selected Year:
@@ -188,6 +200,32 @@ function App() {
         </Box>
       )}
 
+<Box display="flex" 
+          justifyContent="center" 
+          alignItems="center" 
+          mb={3} 
+          sx={{
+            padding: '16px', 
+            borderRadius: '8px',
+            maxWidth: '400px',
+            margin: '0 auto', // Center the box
+          }}>
+        <Typography             variant="h6" 
+            component="span" 
+            sx={{ 
+              fontWeight: 'bold', 
+              backgroundColor: '#3f51b5', // Background color for the "Selected Year" label
+              color: 'white',
+              padding: '8px 12px',
+              borderRadius: '4px 0 0 4px', // Rounded only on the left side
+            }}>Select Type:</Typography>
+        <select value={type} onChange={(e) => setType(e.target.value)} style={{ padding: '8px', fontSize: '16px' }}>
+          {availableTypes.map((typeOption, index) => (
+            <option key={index} value={typeOption}>{typeOption}</option>
+          ))}
+        </select>
+      </Box>
+
       <Box style={{ 
         height: 'calc(100vh - 80px)', // Adjust height to fit in the viewport minus header/footer height
         width: '100%', 
@@ -200,7 +238,7 @@ function App() {
           
           {/* Render Nodes with Dynamic Icons and Custom Popup */}
           {graphData.nodes && graphData.nodes.map((node, index) => {
-            const nodeType = node.station_type; // Adjust based on the actual data key
+            const nodeType = node.type; // Adjust based on the actual data key
             const icon = getIconByType(nodeType); // Determine the correct icon
             const popupContent = node.node_label; // Adjust based on the actual data key
             
@@ -219,28 +257,24 @@ function App() {
 
           {/* Render Edges (Polylines) */}
           {graphData.links && graphData.links.map((edge, index) => {
-  // Look up the coordinates for the source and target nodes using the nodeMap
-  const sourceCoords = graphData.nodeMap[edge.source];
-  const targetCoords = graphData.nodeMap[edge.target];
+            const sourceNode = nodeMap[edge.source];
+            const targetNode = nodeMap[edge.target];
 
-  // Validate the coordinates before rendering the Polyline
-  if (!sourceCoords || !targetCoords) {
-    console.warn('Skipping edge due to missing node coordinates:', edge);
-    return null;
-  }
+            const sourceCoords = parseCoordinates(sourceNode);
+            const targetCoords = parseCoordinates(targetNode);
 
-  return (
-    <Polyline 
-      key={index} 
-      positions={[sourceCoords, targetCoords]} 
-      color="blue" 
-      weight={3} 
-    />
-  );
-})}
+            if (!sourceCoords || !targetCoords) {
+              console.warn('Skipping edge due to invalid coordinates:', edge);
+              return null;
+            }
 
+            return (
+              <Polyline key={index} positions={[sourceCoords, targetCoords]} color="blue" weight={3} />
+            );
+          })}
 
-
+          {/* Log number of edges added to the map */}
+          {console.log('Edges added to the map:', graphData.links.length)}
         </MapContainer>
       </Box>
     </Container>
