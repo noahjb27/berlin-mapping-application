@@ -34,7 +34,7 @@ def get_nodes():
             if year:
                 query = query.filter(Node.year == year)
             if type_filter and type_filter != 'All':
-                query = query.filter(Node.station_type == type_filter)
+                query = query.filter(Node.type == type_filter)
             nodes = query.all()
             node_list = [node.to_dict() for node in nodes]
             return jsonify(node_list)
