@@ -9,7 +9,7 @@ class Node(Base):
     id = Column(String, primary_key=True)
     x = Column(Float)
     y = Column(Float)
-    station_type = Column(String)
+    type = Column(String)
     node_label = Column(String)
     year = Column(String)
     east_west = Column(String)
@@ -21,7 +21,7 @@ class Node(Base):
             'id': self.id,
             'x': self.x,
             'y': self.y,
-            'station_type': self.station_type,
+            'type': self.type,
             'node_label': self.node_label,
             'year': self.year,
             'east_west': self.east_west,
