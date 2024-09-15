@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String
+from sqlalchemy import Column, Integer, Float, String, PrimaryKeyConstraint
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -29,10 +29,10 @@ class Node(Base):
             'district': self.district
         }
 
-# Example for Edge model
+# Example for Edge model with composite primary key
 class Edge(Base):
     __tablename__ = 'edges'
-    id = Column(String, primary_key=True)
+    
     source = Column(String)
     target = Column(String)
     label = Column(String)
@@ -43,9 +43,12 @@ class Edge(Base):
     distance = Column(Float)
     edge_type = Column(String)
 
+    __table_args__ = (
+        PrimaryKeyConstraint('source', 'target'),
+    )
+
     def to_dict(self):
         return {
-            'id': self.id,
             'source': self.source,
             'target': self.target,
             'label': self.label,

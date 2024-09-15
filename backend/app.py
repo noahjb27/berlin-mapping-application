@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from backend.models import Node, Edge
 from dotenv import load_dotenv
@@ -19,8 +19,10 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the environment variables")
 
+# Create engine and session factory
 engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
+session_factory = sessionmaker(bind=engine)
+Session = scoped_session(session_factory)
 
 @app.route('/nodes', methods=['GET'])
 def get_nodes():
@@ -49,6 +51,11 @@ def get_edges():
             return jsonify(edge_list)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Ensure scoped_session is removed after each request
+@app.teardown_appcontext
+def remove_session(exception=None):
+    Session.remove()
 
 if __name__ == '__main__':
     app.run(debug=True)
