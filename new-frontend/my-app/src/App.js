@@ -1,56 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import proj4 from 'proj4'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon } from 'react-leaflet';
 import { Button, Container, Typography, Stack, CircularProgress, Box, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
+import { fetchBerlinWallFeatures } from './api'; // Adjust the import path as needed
 
-// Define marker icons for different node types
-const busIcon = new L.Icon({
-  iconUrl: './assets/bus.png', 
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [0, -41],
-});
+// Function to create a new icon
+function createIcon(iconUrl) {
+  return new L.Icon({
+    iconUrl: iconUrl,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [0, -41],
+  });
+}
 
-const tramIcon = new L.Icon({
-  iconUrl: './assets/tram.png', 
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [0, -41],
-});
+// Define the projection for your coordinates
+proj4.defs("EPSG:25833", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"); // Adjust according to your coordinate system
 
-const ubahnIcon = new L.Icon({
-  iconUrl: './assets/u-bahn.png', 
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [0, -41],
-});
+// Create icons using the function
+const busIcon = createIcon('./assets/bus.png');
+const tramIcon = createIcon('./assets/tram.png');
+const ubahnIcon = createIcon('./assets/u-bahn.png');
+const sbahnIcon = createIcon('./assets/s-bahn.png');
+const defaultIcon = createIcon('./assets/location-pin.png');
 
-const sbahnIcon = new L.Icon({
-  iconUrl: './assets/s-bahn.png', 
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [0, -41],
-});
-
-const defaultIcon = new L.Icon({
-  iconUrl: './assets/location-pin.png', 
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [0, -41],
-});
-
-// Helper function to parse coordinates from string
-const parseCoordinates = (node) => {
-  if (node && node.x !== undefined && node.y !== undefined) {
-    return [node.y, node.x]; // Leaflet expects [latitude, longitude]
-  }
-  return null;
-};
-
-// Function to determine the correct icon based on node type
+// Function to get the appropriate icon based on type
 const getIconByType = (type) => {
   switch (type) {
     case 'bus':
@@ -66,22 +44,31 @@ const getIconByType = (type) => {
   }
 };
 
+// Helper function to parse coordinates from string
+const parseCoordinates = (node) => {
+  if (node && node.x !== undefined && node.y !== undefined) {
+    return [node.y, node.x]; // Leaflet expects [latitude, longitude]
+  }
+  return null;
+};
+
+const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
+// Available types for dropdown
+const availableTypes = ['All', 'u-bahn', 's-bahn', 'bus', 'strassenbahn'];
+
 function App() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] }); // Initialize with empty arrays
   const [year, setYear] = useState('1946'); // Year state
   const [type, setType] = useState(''); // Selected type
   const [loading, setLoading] = useState(false); // Loading state
-
-  const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
-
-  // Available types for dropdown
-  const availableTypes = ['All', 'u-bahn', 's-bahn', 'bus', 'strassenbahn'];
+  const [features, setFeatures] = useState([]);
 
   // Fetch data based on the selected year and type
   useEffect(() => {
     if (year) {
       setLoading(true); // Start loading
       const typeQueryParam = type === 'All' ? '' : type;
+
       axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}&type=${typeQueryParam}`)
         .then(response => {
           console.log('Nodes returned:', response.data.length); // Log number of nodes returned
@@ -109,6 +96,19 @@ function App() {
         });
     }
   }, [year, type]);
+
+  useEffect(() => {
+    const getFeatures = async () => {
+      try {
+        const fetchedFeatures = await fetchBerlinWallFeatures();
+        setFeatures(fetchedFeatures);
+      } catch (error) {
+        console.error('Failed to fetch features:', error);
+      }
+    };
+
+    getFeatures();
+  }, []);
 
   if (loading) {
     return (
@@ -273,8 +273,20 @@ function App() {
             );
           })}
 
-          {/* Log number of edges added to the map */}
-          {console.log('Edges added to the map:', graphData.links.length)}
+   {/* Render Berlin Wall Features */}
+   {features && features.map((feature, index) => {
+  const coords = feature.geometry.coordinates.map(coord => {
+    // Transform from UTM (EPSG:25833) to WGS84 (EPSG:4326)
+    const [lon, lat] = proj4("EPSG:25833", "EPSG:4326", coord);
+    return [lat, lon]; // Leaflet expects [lat, lon]
+  });
+
+  return (
+    <Polyline key={index} positions={coords} color="red" weight={5} />
+  );
+})}
+
+          
         </MapContainer>
       </Box>
     </Container>
