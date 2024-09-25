@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import proj4 from 'proj4'
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon } from 'react-leaflet';
-import { Button, Container, Typography, Stack, CircularProgress, Box, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { Button, Container, Typography, Stack, CircularProgress, Box } from '@mui/material';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
@@ -17,9 +17,6 @@ function createIcon(iconUrl) {
     popupAnchor: [0, -41],
   });
 }
-
-// Define the projection for your coordinates
-proj4.defs("EPSG:25833", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"); // Adjust according to your coordinate system
 
 // Create icons using the function
 const busIcon = createIcon('./assets/bus.png');
@@ -44,6 +41,41 @@ const getIconByType = (type) => {
   }
 };
 
+function Legend() {
+  const map = useMap();
+
+  useEffect(() => {
+    const legend = L.control({ position: 'bottomright' });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      const types = ['u-bahn', 's-bahn', 'bus', 'strassenbahn'];
+      const labels = [];
+
+      types.forEach(type => {
+        const icon = getIconByType(type);
+        labels.push(
+          `<i style="background-image: url(${icon.options.iconUrl});"></i> ${type}`
+      );
+    });
+
+    div.innerHTML = labels.join('<br>');
+    return div;
+  };
+
+  legend.addTo(map);
+
+  return () => {
+    legend.remove();
+  };
+}, [map]);
+
+return null;
+}
+
+// Define the projection for your coordinates
+proj4.defs("EPSG:25833", "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"); // Adjust according to your coordinate system
+
 // Helper function to parse coordinates from string
 const parseCoordinates = (node) => {
   if (node && node.x !== undefined && node.y !== undefined) {
@@ -55,6 +87,8 @@ const parseCoordinates = (node) => {
 const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 1980, 1982, 1984, 1989];
 // Available types for dropdown
 const availableTypes = ['All', 'u-bahn', 's-bahn', 'bus', 'strassenbahn'];
+
+
 
 function App() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] }); // Initialize with empty arrays
@@ -286,7 +320,7 @@ function App() {
   );
 })}
 
-          
+<Legend />
         </MapContainer>
       </Box>
     </Container>
