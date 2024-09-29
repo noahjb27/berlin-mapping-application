@@ -1,15 +1,20 @@
 {
   "files": {
-    "main.css": "/berlin-mapping-application/static/css/main.3c1ba222.css",
-    "main.js": "/berlin-mapping-application/static/js/main.9227600f.js",
+    "main.css": "/berlin-mapping-application/static/css/main.cf6a4775.css",
+    "main.js": "/berlin-mapping-application/static/js/main.68c18ee3.js",
     "static/js/453.ed3810f9.chunk.js": "/berlin-mapping-application/static/js/453.ed3810f9.chunk.js",
+    "static/media/s-bahn.png": "/berlin-mapping-application/static/media/s-bahn.a87c59e28a3b61e5103c.png",
+    "static/media/u-bahn.png": "/berlin-mapping-application/static/media/u-bahn.b433e4726a05f8bf6a57.png",
+    "static/media/location-pin.png": "/berlin-mapping-application/static/media/location-pin.b39e6e0503a926d8ad2e.png",
+    "static/media/bus.png": "/berlin-mapping-application/static/media/bus.4ffb8e497925516dd867.png",
+    "static/media/tram.png": "/berlin-mapping-application/static/media/tram.bffc17d57e89b58f72da.png",
     "index.html": "/berlin-mapping-application/index.html",
-    "main.3c1ba222.css.map": "/berlin-mapping-application/static/css/main.3c1ba222.css.map",
-    "main.9227600f.js.map": "/berlin-mapping-application/static/js/main.9227600f.js.map",
+    "main.cf6a4775.css.map": "/berlin-mapping-application/static/css/main.cf6a4775.css.map",
+    "main.68c18ee3.js.map": "/berlin-mapping-application/static/js/main.68c18ee3.js.map",
     "453.ed3810f9.chunk.js.map": "/berlin-mapping-application/static/js/453.ed3810f9.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.3c1ba222.css",
-    "static/js/main.9227600f.js"
+    "static/css/main.cf6a4775.css",
+    "static/js/main.68c18ee3.js"
   ]
 }
