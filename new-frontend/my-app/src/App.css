@@ -48,3 +48,10 @@ h1 {
 .legend i.icon {
   background-size: 18px;
 }
+
+#title {
+  text-align: center;
+  font-size: 24px;
+  margin: 20px 24px 20px;
+  color: #777;
+}

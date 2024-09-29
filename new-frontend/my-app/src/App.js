@@ -174,7 +174,7 @@ function App() {
 
   return (
     <Container>
-      <Box textAlign="center" mb={4}>
+      <Box textAlign="center" mb={4} id="title">
         <Typography 
           variant="h3" 
           component="h1" 
