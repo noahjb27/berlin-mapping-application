@@ -8,6 +8,13 @@ import 'leaflet/dist/leaflet.css';
 import './App.css';
 import { fetchBerlinWallFeatures } from './api'; // Adjust the import path as needed
 
+// Import images
+import ubahnImage from './assets/u-bahn.png';
+import sbahnImage from './assets/s-bahn.png';
+import tramImage from './assets/tram.png';
+import busImage from './assets/bus.png';
+import defaultImage from './assets/location-pin.png';
+
 // Function to create a new icon
 function createIcon(iconUrl) {
   return new L.Icon({
@@ -19,11 +26,11 @@ function createIcon(iconUrl) {
 }
 
 // Create icons using the function
-const busIcon = createIcon('./assets/bus.png');
-const tramIcon = createIcon('./assets/tram.png');
-const ubahnIcon = createIcon('./assets/u-bahn.png');
-const sbahnIcon = createIcon('./assets/s-bahn.png');
-const defaultIcon = createIcon('./assets/location-pin.png');
+const ubahnIcon = createIcon(ubahnImage);
+const sbahnIcon = createIcon(sbahnImage);
+const tramIcon = createIcon(tramImage);
+const busIcon = createIcon(busImage);
+const defaultIcon = createIcon(defaultImage);
 
 // Function to get the appropriate icon based on type
 const getIconByType = (type) => {
@@ -40,6 +47,11 @@ const getIconByType = (type) => {
       return defaultIcon;
   }
 };
+// Function to get the icon URL by type
+const getIconUrlByType = (type) => {
+  const icon = getIconByType(type);
+  return icon.options.iconUrl;
+};
 
 function Legend() {
   const map = useMap();
@@ -53,24 +65,24 @@ function Legend() {
       const labels = [];
 
       types.forEach(type => {
-        const icon = getIconByType(type);
+        const iconUrl = getIconUrlByType(type);
         labels.push(
-          `<i style="background-image: url(${icon.options.iconUrl});"></i> ${type}`
-      );
-    });
+          `<i style="background-image: url(${iconUrl}); background-size: contain; display: inline-block;"></i> ${type}`
+        );
+      });
 
-    div.innerHTML = labels.join('<br>');
-    return div;
-  };
+      div.innerHTML = labels.join('<br>');
+      return div;
+    };
 
-  legend.addTo(map);
+    legend.addTo(map);
 
-  return () => {
-    legend.remove();
-  };
-}, [map]);
+    return () => {
+      legend.remove();
+    };
+  }, [map]);
 
-return null;
+  return null;
 }
 
 // Define the projection for your coordinates
