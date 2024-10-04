@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import proj4 from 'proj4'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
@@ -33,25 +33,22 @@ const busIcon = createIcon(busImage);
 const defaultIcon = createIcon(defaultImage);
 
 // Function to get the appropriate icon based on type
-const getIconByType = (type) => {
+
+const getColorByType = (type) => {
   switch (type) {
-    case 'bus':
-      return busIcon;
     case 'u-bahn':
-      return ubahnIcon;
+      return '#003688';
     case 's-bahn':
-      return sbahnIcon;
+      return '#006F35';
+    case 'bus':
+      return '#FF4900';
     case 'strassenbahn':
-      return tramIcon;
+      return '#D82020';
     default:
-      return defaultIcon;
+      return '#7C7C7C';
   }
 };
-// Function to get the icon URL by type
-const getIconUrlByType = (type) => {
-  const icon = getIconByType(type);
-  return icon.options.iconUrl;
-};
+
 
 function Legend() {
   const map = useMap();
@@ -65,9 +62,9 @@ function Legend() {
       const labels = [];
 
       types.forEach(type => {
-        const iconUrl = getIconUrlByType(type);
+        const iconUrl = getColorByType(type);
         labels.push(
-          `<i style="background-image: url(${iconUrl}); background-size: contain; display: inline-block;"></i> ${type}`
+          `<i style="background-color: ${iconUrl}; background-size: contain; display: inline-block;"></i> ${type}`
         );
       });
 
@@ -100,46 +97,90 @@ const availableYears = [1946, 1951, 1956, 1960, 1961, 1964, 1967, 1971, 1976, 19
 // Available types for dropdown
 const availableTypes = ['All', 'u-bahn', 's-bahn', 'bus', 'strassenbahn'];
 
+function NetworkOverlay({ graphData }) {
+  const map = useMap();
+
+  const nodeMap = useMemo(() => {
+    const map = {};
+    graphData.nodes.forEach(node => {
+      map[node.id] = node;
+    });
+    return map;
+  }, [graphData.nodes]);
+
+  return (
+    <>
+      {graphData.links && graphData.links.map((edge, index) => {
+        const sourceNode = nodeMap[edge.source];
+        const targetNode = nodeMap[edge.target];
+
+        const sourceCoords = parseCoordinates(sourceNode);
+        const targetCoords = parseCoordinates(targetNode);
+
+        if (!sourceCoords || !targetCoords) {
+          console.warn('Skipping edge due to invalid coordinates:', edge);
+          return null;
+        }
+
+        return (
+          <Polyline key={index} positions={[sourceCoords, targetCoords]} color="blue" weight={2} opacity={0.6} />
+        );
+      })}
+      {graphData.nodes && graphData.nodes.map((node, index) => {
+        const coords = parseCoordinates(node);
+        if (!coords) {
+          console.warn('Skipping node due to invalid coordinates:', node);
+          return null;
+        }
+
+        return (
+          <Marker
+            key={index}
+            position={coords}
+            icon={L.divIcon({
+              className: 'custom-div-icon',
+              html: `<div style="background-color: ${getColorByType(node.type)}; width: 10px; height: 10px; border-radius: 50%;"></div>`,
+              iconSize: [10, 10],
+              iconAnchor: [5, 5]
+            })}
+          >
+            <Popup>
+              {node.node_label || `Node ${node.id}`}
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
 
 
 function App() {
-  const [graphData, setGraphData] = useState({ nodes: [], links: [] }); // Initialize with empty arrays
-  const [year, setYear] = useState('1946'); // Year state
-  const [type, setType] = useState(''); // Selected type
-  const [loading, setLoading] = useState(false); // Loading state
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [year, setYear] = useState('1946');
+  const [type, setType] = useState('');
+  const [loading, setLoading] = useState(false);
   const [features, setFeatures] = useState([]);
 
   // Fetch data based on the selected year and type
   useEffect(() => {
     if (year) {
-      setLoading(true); // Start loading
+      setLoading(true);
       const typeQueryParam = type === 'All' ? '' : type;
 
-      axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}&type=${typeQueryParam}`)
-        .then(response => {
-          console.log('Nodes returned:', response.data.length); // Log number of nodes returned
-          setGraphData(prevData => ({
-            ...prevData,
-            nodes: response.data
-          }));
-          setLoading(false); // Stop loading once data is fetched
-        })
-        .catch(error => {
-          console.error("There was an error fetching the nodes data!", error);
-          setLoading(false); // Stop loading on error
+      Promise.all([
+        axios.get(`https://berlin-mapping-application.onrender.com/nodes?year=${year}&type=${typeQueryParam}`),
+        axios.get(`https://berlin-mapping-application.onrender.com/edges?year=${year}&type=${typeQueryParam}`)
+      ]).then(([nodesResponse, edgesResponse]) => {
+        setGraphData({
+          nodes: nodesResponse.data,
+          links: edgesResponse.data
         });
-
-      axios.get(`https://berlin-mapping-application.onrender.com/edges?year=${year}&type=${typeQueryParam}`)
-        .then(response => {
-          console.log('Edges returned:', response.data.length); // Log number of edges returned
-          setGraphData(prevData => ({
-            ...prevData,
-            links: response.data
-          }));
-        })
-        .catch(error => {
-          console.error("Error fetching the edges data!", error);
-        });
+        setLoading(false);
+      }).catch(error => {
+        console.error("There was an error fetching the data!", error);
+        setLoading(false);
+      });
     }
   }, [year, type]);
 
@@ -272,67 +313,21 @@ function App() {
         </select>
       </Box>
 
-      <Box style={{ 
-        height: 'calc(100vh - 80px)', // Adjust height to fit in the viewport minus header/footer height
-        width: '100%', 
-        marginBottom: '2rem' // Add margin-bottom for spacing under the map
-      }}>
-        <MapContainer center={[52.52, 13.405]} zoom={12} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+      <Box style={{ height: 'calc(100vh - 80px)', width: '100%', marginBottom: '2rem' }}>
+        <MapContainer center={[52.52, 13.405]} zoom={12} attributionControl={false} style={{ height: '100%', width: '100%' }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           
-          {/* Render Nodes with Dynamic Icons and Custom Popup */}
-          {graphData.nodes && graphData.nodes.map((node, index) => {
-            const nodeType = node.type; // Adjust based on the actual data key
-            const icon = getIconByType(nodeType); // Determine the correct icon
-            const popupContent = node.node_label; // Adjust based on the actual data key
-            
-            return (
-              <Marker 
-                key={index} 
-                position={[node.y, node.x]} 
-                icon={icon} // Use dynamic icon based on type
-              >
-                <Popup>
-                  {popupContent} {/* Display the content from d3 */}
-                </Popup>
-              </Marker>
-            );
+          {/* Render Berlin Wall Features */}
+          {features && features.map((feature, index) => {
+            const coords = feature.geometry.coordinates.map(coord => {
+              const [lon, lat] = proj4("EPSG:25833", "EPSG:4326", coord);
+              return [lat, lon];
+            });
+            return <Polyline key={index} positions={coords} color="red" weight={5} />;
           })}
 
-          {/* Render Edges (Polylines) */}
-          {graphData.links && graphData.links.map((edge, index) => {
-            const sourceNode = nodeMap[edge.source];
-            const targetNode = nodeMap[edge.target];
-
-            const sourceCoords = parseCoordinates(sourceNode);
-            const targetCoords = parseCoordinates(targetNode);
-
-            if (!sourceCoords || !targetCoords) {
-              console.warn('Skipping edge due to invalid coordinates:', edge);
-              return null;
-            }
-
-            return (
-              <Polyline key={index} positions={[sourceCoords, targetCoords]} color="blue" weight={3} />
-            );
-          })}
-
-   {/* Render Berlin Wall Features */}
-   {features && features.map((feature, index) => {
-  const coords = feature.geometry.coordinates.map(coord => {
-    // Transform from UTM (EPSG:25833) to WGS84 (EPSG:4326)
-    const [lon, lat] = proj4("EPSG:25833", "EPSG:4326", coord);
-    return [lat, lon]; // Leaflet expects [lat, lon]
-  });
-
-  return (
-    <Polyline key={index} positions={coords} color="red" weight={5} />
-  );
-})}
-
-<Legend />
+          <NetworkOverlay graphData={graphData} />
+          <Legend />
         </MapContainer>
       </Box>
     </Container>
